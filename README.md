@@ -33,7 +33,7 @@ errores al cancelar o finalizar reservas.
 
 ## Estado del proyecto
 
-En desarrollo.
+Funcional en consola y con interfaz gráfica (Swing). Próximo paso: persistencia de datos.
 
 ## Historias de usuario y criterios de aceptación
 
@@ -57,3 +57,42 @@ En desarrollo.
 - **CA-07 (correcto):** Dado que el huésped está registrado, no tiene otra reserva activa y la habitación está libre en esas fechas, cuando se confirma la reserva, entonces el sistema genera un código (RES-0001), calcula el total según las noches y marca la habitación como Reservada.
 - **CA-08 (error):** Dado que la habitación ya tiene una reserva activa que se cruza con las fechas elegidas, cuando se intenta confirmar, entonces el sistema rechaza la reserva y muestra "La habitación ya está reservada en esas fechas."
 - **CA-09 (error):** Dado que el huésped ya tiene una reserva activa, cuando intenta crear otra, entonces el sistema la rechaza y muestra "El huésped ya tiene una reserva activa."
+
+## Cómo ejecutar
+
+Requisitos: JDK 17 o superior (probado con JDK 26) y NetBeans.
+
+1. Clona el repositorio: `git clone https://github.com/angelcaldasdev/AgendaAirBNB.git`
+2. Ábrelo en NetBeans con **File > Open Project**.
+3. Elige una de las dos versiones (clic derecho sobre el archivo > **Run File**):
+   - `Principal/MainGrafico.java`: versión con interfaz gráfica (Swing).
+   - `Principal/Main.java`: versión con menú por consola.
+
+Si las tildes se ven mal en la consola, en **Project Properties > Run > VM Options** agrega:
+`-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8`
+
+## Capturas
+
+### Registro de huéspedes
+![Registro de huéspedes](evidencias/huespedes.png)
+
+### Creación de reservas
+![Creación de reservas](evidencias/reservas.png)
+
+### Gestión de reservas
+![Gestión de reservas](evidencias/gestion.png)
+
+## Estructura del proyecto
+
+    src/
+    ├── Excepciones/   ReglaNegocioException
+    ├── Modelo/        Huesped, Habitacion, Reserva, TipoHabitacion, EstadoHabitacion, EstadoReserva
+    ├── Servicio/      GestorReservas (lógica de negocio)
+    ├── Interfaz/      FrmPrincipal, PanelReservas, PanelGestionReservas
+    └── Principal/     Main (consola), MainGrafico (Swing)
+
+## Próximas mejoras
+
+- Persistencia de datos (los datos hoy se guardan solo en memoria).
+- Reportes de ocupación e ingresos.
+- Migración a Spring Boot con base de datos.
