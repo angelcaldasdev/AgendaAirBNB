@@ -39,12 +39,13 @@ public class FrmPrincipal extends JFrame {
 
         JTabbedPane pestanas = new JTabbedPane();
         pestanas.addTab("Huéspedes", crearPanelHuespedes());
+        pestanas.addTab("Reservas", new PanelReservas(gestorReservas)); // <- línea nueva
         add(pestanas);
     }
 
     private void configurarVentana() {
         setTitle("Sistema de Reservas - Hotel");
-        setSize(520, 340);
+        setSize(620, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // cerrar la ventana termina el programa
         setLocationRelativeTo(null);                    // centrar en pantalla
     }
