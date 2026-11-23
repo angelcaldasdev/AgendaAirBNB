@@ -57,6 +57,27 @@ public class Reserva {
         // El total se fija al crear la reserva con el precio vigente de ese momento
         this.totalPagar = calcularNoches() * habitacion.getPrecioPorNoche();
     }
+    
+        /** Constructor privado: solo se usa para reconstruir una reserva ya guardada en la base de datos. */
+    private Reserva(String codigo, Huesped huesped, Habitacion habitacion, LocalDate fechaEntrada,
+                    LocalDate fechaSalida, int cantidadPersonas, double totalPagar, EstadoReserva estado) {
+        this.codigo = codigo;
+        this.huesped = huesped;
+        this.habitacion = habitacion;
+        this.fechaEntrada = fechaEntrada;
+        this.fechaSalida = fechaSalida;
+        this.cantidadPersonas = cantidadPersonas;
+        this.totalPagar = totalPagar;
+        this.estado = estado;
+    }
+
+    /** Reconstruye una reserva leída de la base de datos, respetando su total y su estado guardados. */
+    public static Reserva reconstruir(String codigo, Huesped huesped, Habitacion habitacion,
+                                      LocalDate fechaEntrada, LocalDate fechaSalida,
+                                      int cantidadPersonas, double totalPagar, EstadoReserva estado) {
+        return new Reserva(codigo, huesped, habitacion, fechaEntrada, fechaSalida,
+                cantidadPersonas, totalPagar, estado);
+    }
 
     /** Cantidad de noches entre la entrada y la salida. */
     public int calcularNoches() {
