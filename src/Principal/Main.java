@@ -1,5 +1,5 @@
 
-package principal;
+package Principal;
 
 
 public class Main {
