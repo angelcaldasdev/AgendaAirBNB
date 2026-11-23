@@ -110,7 +110,7 @@ public class Main {
 
     private static void crearReserva() {
         String dni = leerTexto("DNI del huésped: ");
-        String numeroHabitacion = leerTexto("Número de habitación: ");
+        String numeroHabitacion = leerTexto("Número de habitación (solo el número, ej. 103): ");
         LocalDate fechaEntrada = leerFecha("Fecha de entrada");
         LocalDate fechaSalida = leerFecha("Fecha de salida");
         int cantidadPersonas = leerEntero("Cantidad de personas: ");
