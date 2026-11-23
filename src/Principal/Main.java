@@ -1,9 +1,9 @@
 package Principal;
 
-import excepciones.ReglaNegocioException;
-import modelo.Habitacion;
-import modelo.Huesped;
-import modelo.TipoHabitacion;
+import Excepciones.ReglaNegocioException;
+import Modelo.Habitacion;
+import Modelo.Huesped;
+import Modelo.TipoHabitacion;
 
 public class Main {
 

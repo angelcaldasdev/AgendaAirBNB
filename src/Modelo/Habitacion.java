@@ -1,6 +1,6 @@
-package modelo;
+package Modelo;
 
-import excepciones.ReglaNegocioException;
+import Excepciones.ReglaNegocioException;
 
 /**
  * Representa una habitación física del hotel.

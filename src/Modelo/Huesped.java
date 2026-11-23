@@ -1,6 +1,6 @@
-package modelo;
+package Modelo;
 
-import excepciones.ReglaNegocioException;
+import Excepciones.ReglaNegocioException;
 import java.util.Objects;
 
 /**

@@ -1,4 +1,4 @@
-package excepciones;
+package Excepciones;
 
 /**
  * Excepción que se lanza cuando se incumple una regla de negocio del hotel

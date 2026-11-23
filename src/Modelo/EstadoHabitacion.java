@@ -1,4 +1,4 @@
-package modelo;
+package Modelo;
 
 /**
  * Estados posibles de una habitación según las reglas del negocio.

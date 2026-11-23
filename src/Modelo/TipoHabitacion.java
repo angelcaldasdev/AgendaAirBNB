@@ -1,4 +1,4 @@
-package modelo;
+package Modelo;
 
 /**
  * Tipos de habitación que ofrece el hotel, con su capacidad
