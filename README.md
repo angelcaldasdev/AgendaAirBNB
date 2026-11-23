@@ -93,6 +93,20 @@ Si las tildes se ven mal en la consola, en **Project Properties > Run > VM Optio
 
 ## Próximas mejoras
 
-- Persistencia de datos (los datos hoy se guardan solo en memoria).
+- Transacciones y pruebas unitarias con JUnit.
 - Reportes de ocupación e ingresos.
 - Migración a Spring Boot con base de datos.
+
+## Base de datos (MySQL)
+
+Los datos se guardan en MySQL 8. Las tablas se crean solas al iniciar la aplicación.
+
+1. Instala MySQL Server y MySQL Workbench.
+2. En Workbench, ejecuta `database/crear_base_datos.sql` con el usuario root (cambia la clave del script).
+3. Copia `config.example.properties` como `config.properties` y escribe tu contraseña.
+   El archivo `config.properties` está en `.gitignore`: nunca se sube al repositorio.
+4. Asegúrate de que el servicio MySQL esté iniciado y ejecuta la aplicación.
+
+El conector JDBC (`mysql-connector-j`) está en la carpeta `lib/`.
+
+Capa de persistencia: `src/Persistencia/` (`ConexionBD` y un repositorio por entidad).
