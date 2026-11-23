@@ -39,13 +39,24 @@ public class FrmPrincipal extends JFrame {
 
         JTabbedPane pestanas = new JTabbedPane();
         pestanas.addTab("Huéspedes", crearPanelHuespedes());
-        pestanas.addTab("Reservas", new PanelReservas(gestorReservas)); // <- línea nueva
+        pestanas.addTab("Reservas", new PanelReservas(gestorReservas));
+
+        PanelGestionReservas panelGestion = new PanelGestionReservas(gestorReservas);
+        pestanas.addTab("Gestión de reservas", panelGestion);
+
+        // LISTENER de pestañas: al entrar a "Gestión", la tabla se actualiza sola
+        pestanas.addChangeListener(evento -> {
+            if (pestanas.getSelectedComponent() == panelGestion) {
+                panelGestion.refrescarTabla();
+            }
+        });
+
         add(pestanas);
     }
 
     private void configurarVentana() {
         setTitle("Sistema de Reservas - Hotel");
-        setSize(620, 400);
+        setSize(860, 460);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); // cerrar la ventana termina el programa
         setLocationRelativeTo(null);                    // centrar en pantalla
     }
