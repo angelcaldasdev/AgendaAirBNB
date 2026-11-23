@@ -1,5 +1,6 @@
 package Principal;
 
+import Excepciones.ErrorBaseDatosException;
 import Excepciones.ReglaNegocioException;
 import Modelo.Habitacion;
 import Modelo.Reserva;
@@ -19,11 +20,18 @@ public class Main {
 
     private static final Scanner scanner = new Scanner(System.in);
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private static final GestorReservas gestorReservas = new GestorReservas();
+    private static GestorReservas gestorReservas = new GestorReservas();
 
     public static void main(String[] args) {
 
         int opcionElegida;
+        
+        try {
+            gestorReservas = new GestorReservas();
+        } catch (ErrorBaseDatosException error) {
+            System.out.println("ERROR: " + error.getMessage());
+            return;
+        }
 
         do {
             mostrarMenu();
@@ -58,7 +66,7 @@ public class Main {
                     default:
                         System.out.println("Opción no válida. Elige un número del menú.");
                 }
-            } catch (ReglaNegocioException error) {
+            } catch (ReglaNegocioException | ErrorBaseDatosException error) {
                 // Cualquier regla de negocio incumplida llega aquí con su mensaje
                 System.out.println("ERROR: " + error.getMessage());
             }

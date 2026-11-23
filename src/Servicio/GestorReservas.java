@@ -5,35 +5,45 @@ import Modelo.Habitacion;
 import Modelo.Huesped;
 import Modelo.Reserva;
 import Modelo.TipoHabitacion;
+import Persistencia.ConexionBD;
+import Persistencia.HabitacionRepositorio;
+import Persistencia.HuespedRepositorio;
+import Persistencia.ReservaRepositorio;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
 /**
- * Contiene toda la lógica de negocio del hotel: registro de huéspedes,
+ * Contiene la lógica de negocio del hotel: registro de huéspedes,
  * consulta de habitaciones disponibles y gestión de reservas.
- * Por ahora los datos viven en memoria (listas).
+ * Los datos se guardan en MySQL a través de los repositorios.
  */
 public class GestorReservas {
 
-    private final ArrayList<Huesped> listaHuespedes = new ArrayList<>();
-    private final ArrayList<Habitacion> listaHabitaciones = new ArrayList<>();
-    private final ArrayList<Reserva> listaReservas = new ArrayList<>();
-    private int contadorReservas = 0;
+    private final HuespedRepositorio huespedRepositorio = new HuespedRepositorio();
+    private final HabitacionRepositorio habitacionRepositorio = new HabitacionRepositorio();
+    private final ReservaRepositorio reservaRepositorio =
+            new ReservaRepositorio(huespedRepositorio, habitacionRepositorio);
 
     public GestorReservas() {
-        cargarHabitacionesIniciales();
+        // Crea las tablas si es la primera vez que se ejecuta el sistema
+        ConexionBD.inicializarBaseDeDatos();
+
+        // Si el hotel aún no tiene habitaciones, se cargan las iniciales
+        if (habitacionRepositorio.contar() == 0) {
+            cargarHabitacionesIniciales();
+        }
     }
 
-    /** Habitaciones con las que "abre" el hotel. */
+    /** Habitaciones con las que "abre" el hotel. Solo se cargan una vez. */
     private void cargarHabitacionesIniciales() {
-        listaHabitaciones.add(new Habitacion("101", TipoHabitacion.SIMPLE));
-        listaHabitaciones.add(new Habitacion("102", TipoHabitacion.SIMPLE));
-        listaHabitaciones.add(new Habitacion("103", TipoHabitacion.DOBLE));
-        listaHabitaciones.add(new Habitacion("104", TipoHabitacion.DOBLE));
-        listaHabitaciones.add(new Habitacion("201", TipoHabitacion.DOBLE));
-        listaHabitaciones.add(new Habitacion("202", TipoHabitacion.FAMILIAR));
-        listaHabitaciones.add(new Habitacion("301", TipoHabitacion.SUITE));
-        listaHabitaciones.add(new Habitacion("302", TipoHabitacion.SUITE));
+        habitacionRepositorio.guardar(new Habitacion("101", TipoHabitacion.SIMPLE));
+        habitacionRepositorio.guardar(new Habitacion("102", TipoHabitacion.SIMPLE));
+        habitacionRepositorio.guardar(new Habitacion("103", TipoHabitacion.DOBLE));
+        habitacionRepositorio.guardar(new Habitacion("104", TipoHabitacion.DOBLE));
+        habitacionRepositorio.guardar(new Habitacion("201", TipoHabitacion.DOBLE));
+        habitacionRepositorio.guardar(new Habitacion("202", TipoHabitacion.FAMILIAR));
+        habitacionRepositorio.guardar(new Habitacion("301", TipoHabitacion.SUITE));
+        habitacionRepositorio.guardar(new Habitacion("302", TipoHabitacion.SUITE));
     }
 
     // ---------------------------------------------------------------
@@ -43,29 +53,20 @@ public class GestorReservas {
         // Las validaciones de formato las hace el constructor de Huesped
         Huesped nuevoHuesped = new Huesped(nombreCompleto, dni, telefono, correo);
 
-        if (buscarHuespedPorDni(dni) != null) {
+        if (huespedRepositorio.buscarPorDni(dni) != null) {
             throw new ReglaNegocioException("Ya existe un huésped registrado con el DNI " + dni + ".");
         }
-        listaHuespedes.add(nuevoHuesped);
+        huespedRepositorio.guardar(nuevoHuesped);
         return nuevoHuesped;
     }
 
     public Huesped buscarHuespedPorDni(String dni) {
-        for (Huesped huespedActual : listaHuespedes) {
-            if (huespedActual.getDni().equals(dni)) {
-                return huespedActual;
-            }
-        }
-        return null;
+        return huespedRepositorio.buscarPorDni(dni);
     }
 
     // ---------------------------------------------------------------
     // FUNCIONALIDAD 2: Consultar habitaciones disponibles
     // ---------------------------------------------------------------
-    /**
-     * Devuelve las habitaciones libres en un rango de fechas y con capacidad
-     * suficiente para la cantidad de personas.
-     */
     public ArrayList<Habitacion> obtenerHabitacionesDisponibles(LocalDate fechaEntrada,
                                                                 LocalDate fechaSalida,
                                                                 int cantidadPersonas) {
@@ -74,7 +75,7 @@ public class GestorReservas {
         }
 
         ArrayList<Habitacion> habitacionesLibres = new ArrayList<>();
-        for (Habitacion habitacionActual : listaHabitaciones) {
+        for (Habitacion habitacionActual : habitacionRepositorio.listarTodas()) {
             boolean tieneCapacidad = habitacionActual.getTipo().getCapacidadPersonas() >= cantidadPersonas;
             if (tieneCapacidad && !tieneCruceDeFechas(habitacionActual, fechaEntrada, fechaSalida)) {
                 habitacionesLibres.add(habitacionActual);
@@ -89,17 +90,17 @@ public class GestorReservas {
     public Reserva crearReserva(String dni, String numeroHabitacion,
                                 LocalDate fechaEntrada, LocalDate fechaSalida, int cantidadPersonas) {
 
-        Huesped huespedReserva = buscarHuespedPorDni(dni);
+        Huesped huespedReserva = huespedRepositorio.buscarPorDni(dni);
         if (huespedReserva == null) {
             throw new ReglaNegocioException("No existe un huésped registrado con el DNI " + dni + ".");
         }
 
         // Regla: máximo una reserva activa por huésped
-        if (buscarReservaActivaDeHuesped(dni) != null) {
+        if (reservaRepositorio.buscarActivaDeHuesped(dni) != null) {
             throw new ReglaNegocioException("El huésped ya tiene una reserva activa.");
         }
 
-        Habitacion habitacionReserva = buscarHabitacionPorNumero(numeroHabitacion);
+        Habitacion habitacionReserva = habitacionRepositorio.buscarPorNumero(numeroHabitacion);
         if (habitacionReserva == null) {
             throw new ReglaNegocioException("La habitación " + numeroHabitacion + " no existe.");
         }
@@ -111,13 +112,14 @@ public class GestorReservas {
                     + " ya está reservada en esas fechas.");
         }
 
+        // El código sigue la cantidad de reservas guardadas (las reservas nunca se borran)
+        String codigoReserva = String.format("RES-%04d", reservaRepositorio.contar() + 1);
+
         // Reserva valida fechas y capacidad por dentro
-        contadorReservas++;
-        String codigoReserva = String.format("RES-%04d", contadorReservas);
         Reserva nuevaReserva = new Reserva(codigoReserva, huespedReserva, habitacionReserva,
                 fechaEntrada, fechaSalida, cantidadPersonas);
 
-        listaReservas.add(nuevaReserva);
+        reservaRepositorio.guardar(nuevaReserva);
         actualizarEstadoHabitacion(habitacionReserva);
         return nuevaReserva;
     }
@@ -128,6 +130,7 @@ public class GestorReservas {
     public Reserva cancelarReserva(String codigoReserva) {
         Reserva reservaACancelar = obtenerReservaPorCodigo(codigoReserva);
         reservaACancelar.cancelar();
+        reservaRepositorio.actualizarEstado(reservaACancelar);
         actualizarEstadoHabitacion(reservaACancelar.getHabitacion());
         return reservaACancelar;
     }
@@ -135,6 +138,7 @@ public class GestorReservas {
     public Reserva finalizarReserva(String codigoReserva) {
         Reserva reservaAFinalizar = obtenerReservaPorCodigo(codigoReserva);
         reservaAFinalizar.finalizar();
+        reservaRepositorio.actualizarEstado(reservaAFinalizar);
         actualizarEstadoHabitacion(reservaAFinalizar.getHabitacion());
         return reservaAFinalizar;
     }
@@ -143,38 +147,21 @@ public class GestorReservas {
     // Métodos de apoyo
     // ---------------------------------------------------------------
     public Reserva obtenerReservaPorCodigo(String codigoReserva) {
-        for (Reserva reservaActual : listaReservas) {
-            if (reservaActual.getCodigo().equalsIgnoreCase(codigoReserva)) {
-                return reservaActual;
-            }
+        Reserva reservaEncontrada = reservaRepositorio.buscarPorCodigo(codigoReserva);
+        if (reservaEncontrada == null) {
+            throw new ReglaNegocioException("No existe la reserva con código " + codigoReserva + ".");
         }
-        throw new ReglaNegocioException("No existe la reserva con código " + codigoReserva + ".");
+        return reservaEncontrada;
     }
 
     public Reserva buscarReservaActivaDeHuesped(String dni) {
-        for (Reserva reservaActual : listaReservas) {
-            if (reservaActual.estaActiva() && reservaActual.getHuesped().getDni().equals(dni)) {
-                return reservaActual;
-            }
-        }
-        return null;
-    }
-
-    private Habitacion buscarHabitacionPorNumero(String numeroHabitacion) {
-        for (Habitacion habitacionActual : listaHabitaciones) {
-            if (habitacionActual.getNumero().equals(numeroHabitacion)) {
-                return habitacionActual;
-            }
-        }
-        return null;
+        return reservaRepositorio.buscarActivaDeHuesped(dni);
     }
 
     /** Revisa si alguna reserva ACTIVA de la habitación se cruza con las fechas dadas. */
     private boolean tieneCruceDeFechas(Habitacion habitacion, LocalDate fechaEntrada, LocalDate fechaSalida) {
-        for (Reserva reservaActual : listaReservas) {
-            if (reservaActual.estaActiva()
-                    && reservaActual.getHabitacion().equals(habitacion)
-                    && reservaActual.seCruzaCon(fechaEntrada, fechaSalida)) {
+        for (Reserva reservaActual : reservaRepositorio.listarActivasPorHabitacion(habitacion.getNumero())) {
+            if (reservaActual.seCruzaCon(fechaEntrada, fechaSalida)) {
                 return true;
             }
         }
@@ -183,28 +170,26 @@ public class GestorReservas {
 
     /** La habitación queda RESERVADA si tiene al menos una reserva activa; si no, DISPONIBLE. */
     private void actualizarEstadoHabitacion(Habitacion habitacion) {
-        boolean tieneReservaActiva = false;
-        for (Reserva reservaActual : listaReservas) {
-            if (reservaActual.estaActiva() && reservaActual.getHabitacion().equals(habitacion)) {
-                tieneReservaActiva = true;
-            }
-        }
+        boolean tieneReservaActiva =
+                !reservaRepositorio.listarActivasPorHabitacion(habitacion.getNumero()).isEmpty();
+
         if (tieneReservaActiva) {
             habitacion.marcarComoReservada();
         } else {
             habitacion.marcarComoDisponible();
         }
+        habitacionRepositorio.actualizarEstado(habitacion);
     }
 
     public ArrayList<Habitacion> getListaHabitaciones() {
-        return new ArrayList<>(listaHabitaciones);
+        return habitacionRepositorio.listarTodas();
     }
 
     public ArrayList<Reserva> getListaReservas() {
-        return new ArrayList<>(listaReservas);
+        return reservaRepositorio.listarTodas();
     }
 
     public ArrayList<Huesped> getListaHuespedes() {
-        return new ArrayList<>(listaHuespedes);
+        return huespedRepositorio.listarTodos();
     }
 }
