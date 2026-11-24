@@ -79,6 +79,17 @@ El sistema aplica las siguientes reglas para mantener la integridad de las opera
 | NetBeans IDE 32 | Entorno de desarrollo. |
 | Git y GitHub | Control de versiones y gestión del código fuente. |
 
+## Interfaz gráfica
+
+La aplicación incluye una interfaz Swing con barra lateral de navegación y cuatro secciones:
+**Inicio**, **Huéspedes**, **Reservas** y **Gestión de reservas**.
+
+![Pantalla de inicio de AgendaAirBNB](evidencias/interfaz-moderna-inicio.png)
+
+- Tema visual centralizado en la clase `Tema` (colores, fuentes y estilos reutilizables).
+- Tarjetas de resumen en la pantalla de inicio con reservas activas, habitaciones libres y reservas registradas.
+- Tablas con encabezado oscuro, filas alternadas y estado de la reserva en colores.
+
 ## 🏗️ Arquitectura del proyecto
 
 El proyecto está organizado por responsabilidades para separar la lógica de negocio, los modelos, la interfaz y el acceso a datos.
