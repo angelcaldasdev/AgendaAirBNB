@@ -5,9 +5,9 @@ import Modelo.EstadoReserva;
 import Modelo.Reserva;
 import Servicio.GestorReservas;
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.time.format.DateTimeFormatter;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -18,7 +18,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.table.DefaultTableModel;
 
 /**
- * Pestaña para ver todas las reservas y cancelarlas o finalizarlas.
+ * Sección para ver todas las reservas y cancelarlas o finalizarlas.
  * Muestra los datos en una JTable alimentada por el GestorReservas.
  */
 public class PanelGestionReservas extends JPanel {
@@ -47,8 +47,8 @@ public class PanelGestionReservas extends JPanel {
     }
 
     private void construirPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        setLayout(new BorderLayout(0, 14));
+        setOpaque(false);
 
         // Modelo de la tabla: las celdas no se pueden editar a mano
         modeloTabla = new DefaultTableModel(NOMBRES_COLUMNAS, 0) {
@@ -60,9 +60,12 @@ public class PanelGestionReservas extends JPanel {
 
         tablaReservas = new JTable(modeloTabla);
         tablaReservas.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // una fila a la vez
-        tablaReservas.getTableHeader().setReorderingAllowed(false);
-        tablaReservas.setFillsViewportHeight(true);
-        tablaReservas.setRowHeight(24);
+        Tema.estilizarTabla(tablaReservas); // sin cuadrícula, encabezado oscuro, filas alternadas
+
+        // La columna "Estado" se pinta de color: verde = activa, rojo = cancelada, gris = otras
+        tablaReservas.getColumnModel().getColumn(COLUMNA_ESTADO)
+                .setCellRenderer(crearRenderizadorEstado());
+
         tablaReservas.getColumnModel().getColumn(COLUMNA_CODIGO).setPreferredWidth(90);
         tablaReservas.getColumnModel().getColumn(1).setPreferredWidth(170); // nombre del huésped
 
@@ -74,17 +77,20 @@ public class PanelGestionReservas extends JPanel {
         });
 
         etiquetaResumen = new JLabel();
+        etiquetaResumen.setFont(Tema.FUENTE_NEGRITA);
+        etiquetaResumen.setForeground(Tema.COLOR_TEXTO);
 
-        botonActualizar = new JButton("Actualizar");
-        botonCancelar = new JButton("Cancelar reserva");
-        botonFinalizar = new JButton("Finalizar (check-out)");
+        botonActualizar = Tema.crearBoton("Actualizar", Tema.COLOR_NEUTRO);
+        botonCancelar = Tema.crearBoton("Cancelar reserva", Tema.COLOR_PELIGRO);
+        botonFinalizar = Tema.crearBoton("Finalizar (check-out)", Tema.COLOR_EXITO);
 
         // LISTENERS de los botones: conectan el clic con su HANDLER
         botonActualizar.addActionListener(evento -> refrescarTabla());
         botonCancelar.addActionListener(evento -> cancelarSeleccionada());
         botonFinalizar.addActionListener(evento -> finalizarSeleccionada());
 
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        panelBotones.setOpaque(false);
         panelBotones.add(botonActualizar);
         panelBotones.add(botonCancelar);
         panelBotones.add(botonFinalizar);
@@ -198,5 +204,29 @@ public class PanelGestionReservas extends JPanel {
     private void mostrarError(String mensaje) {
         JOptionPane.showMessageDialog(this, mensaje, "No se pudo completar la operación",
                 JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
+     * Renderizador de la columna "Estado": mantiene las filas alternadas del tema
+     * y solo cambia el color y el grosor del texto según el estado de la reserva.
+     */
+    private Tema.FilaRenderer crearRenderizadorEstado() {
+        return new Tema.FilaRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tabla, Object valor,
+                    boolean seleccionado, boolean foco, int fila, int columna) {
+                super.getTableCellRendererComponent(tabla, valor, seleccionado, foco, fila, columna);
+                String estado = String.valueOf(valor);
+                setFont(Tema.FUENTE_NEGRITA);
+                if (estado.equals(EstadoReserva.ACTIVA.getDescripcion())) {
+                    setForeground(Tema.COLOR_EXITO);
+                } else if (estado.toLowerCase().contains("cancel")) {
+                    setForeground(Tema.COLOR_PELIGRO);
+                } else {
+                    setForeground(Tema.COLOR_NEUTRO);
+                }
+                return this;
+            }
+        };
     }
 }

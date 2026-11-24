@@ -12,21 +12,20 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.border.EmptyBorder;
 
 /**
- * Pestaña para consultar habitaciones disponibles y crear reservas.
+ * Sección para consultar habitaciones disponibles y crear reservas.
  * Reutiliza el GestorReservas: aquí solo hay interfaz, la lógica vive en el servicio.
  */
 public class PanelReservas extends JPanel {
@@ -52,39 +51,46 @@ public class PanelReservas extends JPanel {
     }
 
     private void construirPanel() {
-        setLayout(new BorderLayout(10, 10));
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout());
+        setOpaque(false);
 
         // Campos de texto con fechas sugeridas (mañana y pasado mañana)
         campoDni = new JTextField();
         campoFechaEntrada = new JTextField(fechaSugerida(1));
         campoFechaSalida = new JTextField(fechaSugerida(2));
+        Tema.estilizarCampo(campoDni);
+        Tema.estilizarCampo(campoFechaEntrada);
+        Tema.estilizarCampo(campoFechaSalida);
 
         // Spinner de personas: valor inicial 1, mínimo 1, máximo 4, de 1 en 1
         spinnerPersonas = new JSpinner(new SpinnerNumberModel(1, 1, 4, 1));
+        Tema.estilizarSpinner(spinnerPersonas);
 
         // ComboBox con un modelo que podemos llenar y vaciar dinámicamente
         modeloHabitaciones = new DefaultComboBoxModel<>();
         comboHabitaciones = new JComboBox<>(modeloHabitaciones);
         comboHabitaciones.setRenderer(crearRenderizadorHabitaciones());
+        Tema.estilizarCombo(comboHabitaciones);
 
-        // Formulario: 5 filas x 2 columnas (etiqueta + componente)
-        JPanel panelFormulario = new JPanel(new GridLayout(5, 2, 10, 12));
-        panelFormulario.add(new JLabel("DNI del huésped:"));
-        panelFormulario.add(campoDni);
-        panelFormulario.add(new JLabel("Fecha de entrada (dd/MM/yyyy):"));
-        panelFormulario.add(campoFechaEntrada);
-        panelFormulario.add(new JLabel("Fecha de salida (dd/MM/yyyy):"));
-        panelFormulario.add(campoFechaSalida);
-        panelFormulario.add(new JLabel("Cantidad de personas:"));
-        panelFormulario.add(spinnerPersonas);
-        panelFormulario.add(new JLabel("Habitación disponible:"));
-        panelFormulario.add(comboHabitaciones);
+        // Parte superior del formulario: 2 filas x 2 columnas (etiqueta arriba de cada campo)
+        JPanel cuadriculaCampos = new JPanel(new GridLayout(2, 2, 20, 16));
+        cuadriculaCampos.setOpaque(false);
+        cuadriculaCampos.add(Tema.crearCampoFormulario("DNI del huésped", campoDni));
+        cuadriculaCampos.add(Tema.crearCampoFormulario("Cantidad de personas", spinnerPersonas));
+        cuadriculaCampos.add(Tema.crearCampoFormulario("Fecha de entrada (dd/MM/yyyy)", campoFechaEntrada));
+        cuadriculaCampos.add(Tema.crearCampoFormulario("Fecha de salida (dd/MM/yyyy)", campoFechaSalida));
+
+        // La habitación ocupa todo el ancho, debajo de la cuadrícula
+        JPanel panelFormulario = new JPanel(new BorderLayout(0, 16));
+        panelFormulario.setOpaque(false);
+        panelFormulario.add(cuadriculaCampos, BorderLayout.NORTH);
+        panelFormulario.add(Tema.crearCampoFormulario("Habitación disponible", comboHabitaciones),
+                BorderLayout.CENTER);
 
         // Botones
-        botonConsultar = new JButton("Consultar disponibles");
-        botonLimpiar = new JButton("Limpiar");
-        botonReservar = new JButton("Reservar");
+        botonConsultar = Tema.crearBoton("Consultar disponibles", Tema.COLOR_ACENTO_MORADO);
+        botonLimpiar = Tema.crearBoton("Limpiar", Tema.COLOR_NEUTRO);
+        botonReservar = Tema.crearBoton("Reservar", Tema.COLOR_PRIMARIO);
         botonReservar.setEnabled(false); // se activa solo cuando hay habitaciones para elegir
 
         // LISTENERS: conectan cada EVENTO (clic) con su HANDLER (método)
@@ -92,13 +98,21 @@ public class PanelReservas extends JPanel {
         botonReservar.addActionListener(evento -> reservarDesdeFormulario());
         botonLimpiar.addActionListener(evento -> limpiarFormulario());
 
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        panelBotones.setOpaque(false);
         panelBotones.add(botonConsultar);
         panelBotones.add(botonLimpiar);
         panelBotones.add(botonReservar);
 
-        add(panelFormulario, BorderLayout.CENTER);
-        add(panelBotones, BorderLayout.SOUTH);
+        // Tarjeta blanca: título, formulario al centro y botones abajo
+        JPanel tarjeta = Tema.crearTarjeta(new BorderLayout(0, 20));
+        tarjeta.setBorder(new EmptyBorder(24, 28, 24, 28));
+        tarjeta.add(Tema.crearTituloTarjeta("Datos de la reserva"), BorderLayout.NORTH);
+        tarjeta.add(panelFormulario, BorderLayout.CENTER);
+        tarjeta.add(panelBotones, BorderLayout.SOUTH);
+
+        // La tarjeta va arriba para que no se estire a todo el alto de la ventana
+        add(tarjeta, BorderLayout.NORTH);
     }
 
     // ---------------- HANDLERS ----------------
@@ -197,6 +211,7 @@ public class PanelReservas extends JPanel {
             public Component getListCellRendererComponent(JList<?> lista, Object valor, int indice,
                     boolean estaSeleccionado, boolean tieneFoco) {
                 super.getListCellRendererComponent(lista, valor, indice, estaSeleccionado, tieneFoco);
+                setBorder(new EmptyBorder(6, 10, 6, 10)); // espacio interno para que respire
                 if (valor instanceof Habitacion) {
                     Habitacion habitacion = (Habitacion) valor;
                     setText("Hab. " + habitacion.getNumero() + " - " + habitacion.getTipo()
