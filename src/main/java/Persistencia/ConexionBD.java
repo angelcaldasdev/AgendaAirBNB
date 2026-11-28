@@ -11,8 +11,9 @@ import java.util.Properties;
 
 /**
  * Abre conexiones con MySQL leyendo los datos desde config.properties
- * (así la contraseña nunca queda escrita en el código) y crea las tablas
- * la primera vez que se ejecuta el sistema.
+ * (así la contraseña nunca queda escrita en el código), crea las tablas
+ * la primera vez que se ejecuta el sistema y permite ejecutar varias
+ * operaciones como una sola TRANSACCIÓN (todo se guarda o nada se guarda).
  */
 public class ConexionBD {
 
@@ -23,6 +24,16 @@ public class ConexionBD {
 
     // Clase de utilidad: no se instancia
     private ConexionBD() {
+    }
+
+    /**
+     * Operación que se ejecuta dentro de una transacción.
+     * Recibe la conexión de la transacción y debe usarla en TODAS sus consultas,
+     * porque cada conexión ve los cambios aún no confirmados solo de sí misma.
+     */
+    @FunctionalInterface
+    public interface OperacionTransaccional {
+        void ejecutar(Connection conexion) throws SQLException;
     }
 
     private static Properties obtenerConfiguracion() {
@@ -46,6 +57,43 @@ public class ConexionBD {
                 datos.getProperty("db.url"),
                 datos.getProperty("db.usuario"),
                 datos.getProperty("db.clave"));
+    }
+
+    /**
+     * Ejecuta una operación como UNA sola transacción:
+     *  - Si todo sale bien, se confirma con commit (todos los cambios quedan guardados).
+     *  - Si algo falla, se deshace con rollback (no queda ningún cambio a medias).
+     *
+     * @param mensajeError mensaje que se usa si ocurre un error de SQL
+     * @param operacion    lo que se quiere ejecutar dentro de la transacción
+     */
+    public static void ejecutarEnTransaccion(String mensajeError, OperacionTransaccional operacion) {
+        try (Connection conexion = obtenerConexion()) {
+
+            // Desde aquí, nada se guarda en la base de datos hasta llamar a commit()
+            conexion.setAutoCommit(false);
+
+            try {
+                operacion.ejecutar(conexion);
+                conexion.commit(); // todo salió bien: se guardan los cambios juntos
+
+            } catch (SQLException | RuntimeException error) {
+                // Algo falló: se deshacen los cambios que se alcanzaron a hacer
+                try {
+                    conexion.rollback();
+                } catch (SQLException errorAlDeshacer) {
+                    // Si el rollback también falla, no se pierde el error original
+                    error.addSuppressed(errorAlDeshacer);
+                }
+                throw error; // se vuelve a lanzar el error original
+            }
+
+        } catch (SQLException error) {
+            // Errores de SQL (de la operación o de la conexión) se convierten en el error técnico del sistema
+            throw new ErrorBaseDatosException(mensajeError, error);
+        }
+        // Las conexiones no se reutilizan (DriverManager abre una nueva cada vez),
+        // por eso no hace falta volver a activar el autoCommit.
     }
 
     /** Crea las tablas si no existen. Se puede llamar en cada arranque sin problema. */
