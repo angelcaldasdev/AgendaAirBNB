@@ -264,6 +264,15 @@ El proyecto ofrece dos modalidades:
 
 Para ejecutar una modalidad, ubicar el archivo correspondiente en NetBeans, hacer clic derecho y seleccionar **Run File**.
 
+
+## Ejecución con Maven
+
+Requisitos: JDK 21 o superior, MySQL 8 encendido y NetBeans (incluye Maven).
+
+- Compilar: `mvn clean compile`
+- Ejecutar la interfaz gráfica: `mvn exec:java`
+
+
 ### Configuración de codificación UTF-8
 
 Si los caracteres con tildes se muestran incorrectamente en la consola, ingresar a:
