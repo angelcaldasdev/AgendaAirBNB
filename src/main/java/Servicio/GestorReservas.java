@@ -9,6 +9,8 @@ import Persistencia.ConexionBD;
 import Persistencia.HabitacionRepositorio;
 import Persistencia.HuespedRepositorio;
 import Persistencia.ReservaRepositorio;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 
@@ -16,6 +18,9 @@ import java.util.ArrayList;
  * Contiene la lógica de negocio del hotel: registro de huéspedes,
  * consulta de habitaciones disponibles y gestión de reservas.
  * Los datos se guardan en MySQL a través de los repositorios.
+ *
+ * Las operaciones que modifican VARIAS tablas (crear, cancelar y finalizar reserva)
+ * se ejecutan dentro de una transacción: se guardan completas o no se guarda nada.
  */
 public class GestorReservas {
 
@@ -119,8 +124,12 @@ public class GestorReservas {
         Reserva nuevaReserva = new Reserva(codigoReserva, huespedReserva, habitacionReserva,
                 fechaEntrada, fechaSalida, cantidadPersonas);
 
-        reservaRepositorio.guardar(nuevaReserva);
-        actualizarEstadoHabitacion(habitacionReserva);
+        // TRANSACCIÓN: guardar la reserva y cambiar el estado de la habitación van juntos.
+        // Si el segundo paso falla, el primero se deshace y no queda nada a medias.
+        ConexionBD.ejecutarEnTransaccion("No se pudo crear la reserva.", conexion -> {
+            reservaRepositorio.guardar(conexion, nuevaReserva);
+            actualizarEstadoHabitacion(conexion, habitacionReserva);
+        });
         return nuevaReserva;
     }
 
@@ -129,17 +138,25 @@ public class GestorReservas {
     // ---------------------------------------------------------------
     public Reserva cancelarReserva(String codigoReserva) {
         Reserva reservaACancelar = obtenerReservaPorCodigo(codigoReserva);
-        reservaACancelar.cancelar();
-        reservaRepositorio.actualizarEstado(reservaACancelar);
-        actualizarEstadoHabitacion(reservaACancelar.getHabitacion());
+        reservaACancelar.cancelar(); // valida la regla: solo se cancela una reserva activa
+
+        // TRANSACCIÓN: el estado de la reserva y el de la habitación cambian juntos
+        ConexionBD.ejecutarEnTransaccion("No se pudo cancelar la reserva.", conexion -> {
+            reservaRepositorio.actualizarEstado(conexion, reservaACancelar);
+            actualizarEstadoHabitacion(conexion, reservaACancelar.getHabitacion());
+        });
         return reservaACancelar;
     }
 
     public Reserva finalizarReserva(String codigoReserva) {
         Reserva reservaAFinalizar = obtenerReservaPorCodigo(codigoReserva);
-        reservaAFinalizar.finalizar();
-        reservaRepositorio.actualizarEstado(reservaAFinalizar);
-        actualizarEstadoHabitacion(reservaAFinalizar.getHabitacion());
+        reservaAFinalizar.finalizar(); // valida la regla: solo se finaliza una reserva activa
+
+        // TRANSACCIÓN: el estado de la reserva y el de la habitación cambian juntos
+        ConexionBD.ejecutarEnTransaccion("No se pudo finalizar la reserva.", conexion -> {
+            reservaRepositorio.actualizarEstado(conexion, reservaAFinalizar);
+            actualizarEstadoHabitacion(conexion, reservaAFinalizar.getHabitacion());
+        });
         return reservaAFinalizar;
     }
 
@@ -168,17 +185,23 @@ public class GestorReservas {
         return false;
     }
 
-    /** La habitación queda RESERVADA si tiene al menos una reserva activa; si no, DISPONIBLE. */
-    private void actualizarEstadoHabitacion(Habitacion habitacion) {
+    /**
+     * La habitación queda RESERVADA si tiene al menos una reserva activa; si no, DISPONIBLE.
+     * Recibe la conexión de la transacción: así cuenta también los cambios que todavía
+     * no se confirmaron (la reserva recién guardada o recién cancelada).
+     * Los objetos Habitacion y Reserva se vuelven a leer de MySQL en cada consulta,
+     * por eso no queda un estado desfasado en memoria si la transacción se deshace.
+     */
+    private void actualizarEstadoHabitacion(Connection conexion, Habitacion habitacion) throws SQLException {
         boolean tieneReservaActiva =
-                !reservaRepositorio.listarActivasPorHabitacion(habitacion.getNumero()).isEmpty();
+                reservaRepositorio.contarActivasPorHabitacion(conexion, habitacion.getNumero()) > 0;
 
         if (tieneReservaActiva) {
             habitacion.marcarComoReservada();
         } else {
             habitacion.marcarComoDisponible();
         }
-        habitacionRepositorio.actualizarEstado(habitacion);
+        habitacionRepositorio.actualizarEstado(conexion, habitacion);
     }
 
     public ArrayList<Habitacion> getListaHabitaciones() {
