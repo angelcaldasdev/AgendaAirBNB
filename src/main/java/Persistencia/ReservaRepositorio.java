@@ -15,6 +15,9 @@ import java.util.ArrayList;
 /**
  * Guarda y consulta reservas en la tabla "reservas".
  * Usa los otros repositorios para reconstruir el huésped y la habitación de cada reserva.
+ *
+ * Los métodos que reciben una Connection existen para poder usarse dentro de una
+ * transacción (ver ConexionBD.ejecutarEnTransaccion).
  */
 public class ReservaRepositorio {
 
@@ -31,13 +34,25 @@ public class ReservaRepositorio {
         this.habitacionRepositorio = habitacionRepositorio;
     }
 
+    /** Guarda la reserva abriendo su propia conexión (fuera de una transacción). */
     public void guardar(Reserva reserva) {
+        try (Connection conexion = ConexionBD.obtenerConexion()) {
+            guardar(conexion, reserva);
+
+        } catch (SQLException error) {
+            throw new ErrorBaseDatosException("No se pudo guardar la reserva.", error);
+        }
+    }
+
+    /**
+     * Guarda la reserva usando una conexión que viene de afuera, para que pueda
+     * formar parte de una transacción. No cierra la conexión ni captura el error.
+     */
+    public void guardar(Connection conexion, Reserva reserva) throws SQLException {
         String sql = "INSERT INTO reservas (codigo, dni_huesped, numero_habitacion, fecha_entrada, "
                 + "fecha_salida, cantidad_personas, total_pagar, estado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conexion = ConexionBD.obtenerConexion();
-             PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-
+        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
             sentencia.setString(1, reserva.getCodigo());
             sentencia.setString(2, reserva.getHuesped().getDni());
             sentencia.setString(3, reserva.getHabitacion().getNumero());
@@ -47,24 +62,47 @@ public class ReservaRepositorio {
             sentencia.setDouble(7, reserva.getTotalPagar());
             sentencia.setString(8, reserva.getEstado().name());
             sentencia.executeUpdate();
-
-        } catch (SQLException error) {
-            throw new ErrorBaseDatosException("No se pudo guardar la reserva.", error);
         }
     }
 
+    /** Actualiza el estado abriendo su propia conexión (fuera de una transacción). */
     public void actualizarEstado(Reserva reserva) {
-        String sql = "UPDATE reservas SET estado = ? WHERE codigo = ?";
-
-        try (Connection conexion = ConexionBD.obtenerConexion();
-             PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-
-            sentencia.setString(1, reserva.getEstado().name());
-            sentencia.setString(2, reserva.getCodigo());
-            sentencia.executeUpdate();
+        try (Connection conexion = ConexionBD.obtenerConexion()) {
+            actualizarEstado(conexion, reserva);
 
         } catch (SQLException error) {
             throw new ErrorBaseDatosException("No se pudo actualizar el estado de la reserva.", error);
+        }
+    }
+
+    /**
+     * Actualiza el estado usando una conexión que viene de afuera, para que pueda
+     * formar parte de una transacción. No cierra la conexión ni captura el error.
+     */
+    public void actualizarEstado(Connection conexion, Reserva reserva) throws SQLException {
+        String sql = "UPDATE reservas SET estado = ? WHERE codigo = ?";
+
+        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
+            sentencia.setString(1, reserva.getEstado().name());
+            sentencia.setString(2, reserva.getCodigo());
+            sentencia.executeUpdate();
+        }
+    }
+
+    /**
+     * Cuenta las reservas ACTIVAS de una habitación usando la conexión de la transacción.
+     * Es importante usar la MISMA conexión: así también se cuenta la reserva que se acaba
+     * de guardar (o de cancelar) y que todavía no se confirmó con commit.
+     */
+    public int contarActivasPorHabitacion(Connection conexion, String numeroHabitacion) throws SQLException {
+        String sql = "SELECT COUNT(*) FROM reservas WHERE estado = 'ACTIVA' AND numero_habitacion = ?";
+
+        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
+            sentencia.setString(1, numeroHabitacion);
+            try (ResultSet resultado = sentencia.executeQuery()) {
+                resultado.next();
+                return resultado.getInt(1);
+            }
         }
     }
 

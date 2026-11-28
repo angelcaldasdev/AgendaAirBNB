@@ -32,18 +32,28 @@ public class HabitacionRepositorio {
         }
     }
 
+    /** Actualiza el estado abriendo su propia conexión (fuera de una transacción). */
     public void actualizarEstado(Habitacion habitacion) {
-        String sql = "UPDATE habitaciones SET estado = ? WHERE numero = ?";
-
-        try (Connection conexion = ConexionBD.obtenerConexion();
-             PreparedStatement sentencia = conexion.prepareStatement(sql)) {
-
-            sentencia.setString(1, habitacion.getEstado().name());
-            sentencia.setString(2, habitacion.getNumero());
-            sentencia.executeUpdate();
+        try (Connection conexion = ConexionBD.obtenerConexion()) {
+            actualizarEstado(conexion, habitacion);
 
         } catch (SQLException error) {
             throw new ErrorBaseDatosException("No se pudo actualizar el estado de la habitación.", error);
+        }
+    }
+
+    /**
+     * Actualiza el estado usando una conexión que viene de afuera.
+     * Así puede formar parte de una transacción junto con otras operaciones.
+     * No cierra la conexión ni captura el error: de eso se encarga quien la abrió.
+     */
+    public void actualizarEstado(Connection conexion, Habitacion habitacion) throws SQLException {
+        String sql = "UPDATE habitaciones SET estado = ? WHERE numero = ?";
+
+        try (PreparedStatement sentencia = conexion.prepareStatement(sql)) {
+            sentencia.setString(1, habitacion.getEstado().name());
+            sentencia.setString(2, habitacion.getNumero());
+            sentencia.executeUpdate();
         }
     }
 
