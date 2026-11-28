@@ -6,3 +6,4 @@ config.properties
 *.db
 config.properties
 *.db
+target/
