@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    pom.xml = "Project Object Model": el archivo que le explica a Maven cómo es tu proyecto.
+    Va en la carpeta raíz del repositorio (junto a README.md y .gitignore).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Identificación del proyecto (groupId + artifactId + version = su "DNI" en Maven) -->
+    <groupId>io.github.angelcaldasdev</groupId>
+    <artifactId>agenda-airbnb</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>AgendaAirBNB</name>
+    <description>Sistema de reservas para un hotel con interfaz Swing y persistencia en MySQL</description>
+
+    <properties>
+        <!-- Versión de Java con la que se compila. 21 es LTS y es compatible con Spring Boot.
+             Tu JDK 26 puede compilar para 21 sin problema. -->
+        <maven.compiler.release>21</maven.compiler.release>
+
+        <!-- Para que las tildes y la "ñ" se lean bien en todos los sistemas -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Clase que se ejecuta al presionar Run (NetBeans lee esta propiedad).
+             Para la versión de consola cámbiala por Principal.Main -->
+        <exec.mainClass>Principal.MainGrafico</exec.mainClass>
+    </properties>
+
+    <dependencies>
+        <!-- Driver JDBC de MySQL: reemplaza al archivo mysql-connector-j-9.4.0.jar
+             que tenías agregado a mano en Libraries. Maven lo descarga solo. -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <version>9.4.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Compila el código Java -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.15.0</version>
+            </plugin>
+
+            <!-- Genera el .jar indicando cuál es la clase principal -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.5.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>${exec.mainClass}</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Permite ejecutar el programa desde la terminal con: mvn exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <mainClass>${exec.mainClass}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
